@@ -865,6 +865,56 @@ class Layer2Subinterface(Subinterface):
         self._params = tuple(params)
 
 
+class VirtualWireSubinterface(Subinterface):
+    """Ethernet or Aggregate Subinterface in VirtualWire mode.
+
+    Args:
+        tag (int): Tag for the interface, aka vlan id
+        lldp_enabled (bool): Enable LLDP
+        lldp_profile (str): Reference to an lldp profile
+        netflow_profile_l2 (NetflowProfile): Reference to a netflow profile
+        comment (str): The interface's comment
+
+    """
+    SUFFIX = ENTRY
+    DEFAULT_MODE = 'virtual-wire'
+    ALLOW_SET_VLAN = True
+
+    def _setup(self):
+        # xpaths for parents: EthernetInterface, AggregateInterface
+        self._xpaths.add_profile(value='/virtual-wire/units')
+        # xpaths for parents: firewall.Firewall, device.Vsys
+        self._xpaths.add_profile(
+            parents=('Firewall', 'Vsys'),
+            value=('/network/interface/{0}/{1}/virtual-wire/units'.format(
+                self._BASE_INTERFACE_TYPE, self._BASE_INTERFACE_NAME)))
+        self._xpaths.add_profile(
+            value='{0}/network/interface/{1}/{2}/virtual-wire/units'.format(
+                self._TEMPLATE_DEVICE_XPATH,
+                self._BASE_INTERFACE_TYPE,
+                self._BASE_INTERFACE_NAME),
+            parents=('Template', 'TemplateStack'))
+
+        # xpath imports
+        self._xpath_imports.add_profile(value='/network/interface')
+
+        # params
+        params = []
+
+        params.append(VersionedParamPath(
+            'tag', path='tag', vartype='int'))
+        params.append(VersionedParamPath(
+            'lldp_enabled', path='lldp/enable', vartype='yesno'))
+        params.append(VersionedParamPath(
+            'lldp_profile', path='lldp/profile'))
+        params.append(VersionedParamPath(
+            'netflow_profile_l2', path='netflow-profile'))
+        params.append(VersionedParamPath(
+            'comment', path='comment'))
+
+        self._params = tuple(params)
+
+
 class PhysicalInterface(Interface):
     """Absract base class for Ethernet and Aggregate Interfaces
 
@@ -958,6 +1008,7 @@ class EthernetInterface(PhysicalInterface):
     CHILDTYPES = (
         "network.Layer3Subinterface",
         "network.Layer2Subinterface",
+        "network.VirtualWireSubinterface",
         "network.IPv6Address",
         "network.Arp",
     )
